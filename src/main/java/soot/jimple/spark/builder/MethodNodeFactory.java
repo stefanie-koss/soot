@@ -233,6 +233,16 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
         ts.getOp().apply(MethodNodeFactory.this);
         mpag.addOutEdge(getNode(), pag.nodeFactory().caseThrow());
       }
+
+      // @Override
+      // final public void caseCastExpr(CastExpression ce) {
+      // Pair<Expr, String> castPair = new Pair<Expr, String>(ce, PointsToAnalysis.CAST_NODE);
+      // ce.getOp().apply(this);
+      // Node opNode = getNode();
+      // Node castNode = new CastNode()
+      // mpag.addInternalEdge(opNode, castNode);
+      // setResult(castNode);
+      // }
     });
   }
 
@@ -270,8 +280,8 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
   }
 
   final public Node caseParm(int index) {
-    //if we connect method with different param counts in virtualedges.xml, we may be calling caseParam with
-    //out-of-bound index. see PAG.addCallTarget
+    // if we connect method with different param counts in virtualedges.xml, we may be calling caseParam with
+    // out-of-bound index. see PAG.addCallTarget
     if (method.getParameterCount() < index + 1) {
       return null;
     }
@@ -320,8 +330,12 @@ public class MethodNodeFactory extends AbstractShimpleValueSwitch {
     ce.getOp().apply(this);
     Node opNode = getNode();
     Node castNode = pag.makeLocalVarNode(castPair, ce.getCastType(), method);
+    // Node castNode = pag.makeCastNode(ce, method);
+    // Node tgtNode = pag.makeLocalVarNode(castPair, ce.getCastType(), method);
     mpag.addInternalEdge(opNode, castNode);
     setResult(castNode);
+    // mpag.addInternalEdge(castNode, tgtNode);
+    // setResult(tgtNode);
   }
 
   @Override

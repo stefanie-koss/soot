@@ -31,14 +31,18 @@ import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import soot.FastHierarchy;
+import soot.PointsToAnalysis;
 import soot.RefType;
 import soot.Scene;
 import soot.SootClass;
+import soot.SootMethod;
 import soot.Type;
 import soot.jimple.spark.pag.AllocDotField;
 import soot.jimple.spark.pag.AllocNode;
 import soot.jimple.spark.pag.ClassConstantNode;
 import soot.jimple.spark.pag.FieldRefNode;
+import soot.jimple.spark.pag.LocalVarNode;
 import soot.jimple.spark.pag.NewInstanceNode;
 import soot.jimple.spark.pag.Node;
 import soot.jimple.spark.pag.PAG;
@@ -46,6 +50,7 @@ import soot.jimple.spark.pag.SparkField;
 import soot.jimple.spark.pag.VarNode;
 import soot.jimple.spark.sets.P2SetVisitor;
 import soot.jimple.spark.sets.PointsToSetInternal;
+import soot.toolkits.scalar.Pair;
 import soot.util.queue.QueueReader;
 
 /**
@@ -166,6 +171,16 @@ public class PropWorklist extends Propagator {
           if (addedTgt instanceof VarNode) {
             VarNode edgeTgt = (VarNode) addedTgt.getReplacement();
 
+            // handle cast nodes
+            Object var = edgeTgt.getVariable();
+            if (var != null && var instanceof Pair<?, ?>) {
+              Object varSecond = ((Pair<?, ?>) var).getO2();
+              if (varSecond instanceof String && ((String) varSecond).equals(PointsToAnalysis.CAST_NODE)) {
+                // The target node is a Cast Node
+                int i = 0;
+              }
+            }
+
             if (edgeTgt.makeP2Set().addAll(edgeSrc.getP2Set(), null)) {
               varNodeWorkList.add(edgeTgt);
               if (edgeTgt == src) {
@@ -228,6 +243,49 @@ public class PropWorklist extends Propagator {
 
     Node[] simpleTargets = pag.simpleLookup(src);
     for (Node element : simpleTargets) {
+      // Build more precise p2set for cast expressions (or expressions like a = b, where b of subtype)
+      if (element instanceof LocalVarNode) {
+
+        LocalVarNode target = (LocalVarNode) element;
+        Type declaredType = target.getType();
+        // if declaredType subtype of ...
+        if (!pag.getTypeManager().castNeverFails(src.getType(), target.getType())) {
+          // The target type narrows the p2set
+
+        }
+
+        // TODO delete everything from p2set, which is not a subtype of the declared type of the target
+        PointsToSetInternal prunedP2Set = pag.getSetFactory().newSet(declaredType, pag);
+
+        // TODO fill the entries from newP2Set to prunedP2Set, that are type compatible
+        newP2Set.forall(new P2SetVisitor() {
+          @Override
+          public void visit(Node n) {
+            Type incomingType = n.getType();
+            FastHierarchy fh = pag.getTypeManager().getFastHierarchy();
+            // if (!pag.getTypeManager().canStoreType(incomingType, declaredType)) {
+            if (fh == null || fh.canStoreType(incomingType, declaredType)) {
+              SootMethod m = null;
+              if (n instanceof AllocNode) {
+                m = ((AllocNode) n).getMethod();
+              }
+              Node castNode = pag.makeCastNode(target, target.getType(), n, m); // The cast node stores the declared type and
+              // new CastNode(pag, target, declaredType, n, m) // the
+              // allocNode that is narrowed by this type.
+              // TODO The line above needs to be replaced. We should generate the nodes before propagation and only put them
+              // in the p2set here.
+              // TODO Challenge: find a not invasive way to reuse Cast Nodes (important for noticing changes)
+              prunedP2Set.add(castNode);
+            } else {
+              prunedP2Set.add(n);
+            }
+          }
+
+        });
+      }
+      // TODO propagate the prunedP2Set if it does exist.
+      // propagate p2set to target
+
       if (element.makeP2Set().addAll(newP2Set, null)) {
         varNodeWorkList.add((VarNode) element);
         if (element == src) {

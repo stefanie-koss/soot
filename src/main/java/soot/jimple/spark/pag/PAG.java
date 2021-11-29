@@ -635,6 +635,17 @@ public class PAG implements PointsToAnalysis {
     return ret;
   }
 
+  public CastNode makeCastNode(Object ce, Type t, Node p2Node, SootMethod m) {
+    // TODO reuse cast nodes (like other types that find or create the node)
+    CastNode ret = valToCastNode.get(ce);
+    if (ret == null) {
+      valToCastNode.put(ce, ret = new CastNode(this, ce, t, p2Node, m));
+      // newCastNodes.add(ret);
+      addNodeTag(ret, m);
+    }
+    return ret;
+  }
+
   public AllocNode makeStringConstantNode(String s) {
     if (opts.types_for_sites() || opts.vta()) {
       return makeAllocNode(RefType.v("java.lang.String"), RefType.v("java.lang.String"), null);
@@ -1018,6 +1029,12 @@ public class PAG implements PointsToAnalysis {
 
   public ArrayNumberer<AllocNode> getAllocNodeNumberer() {
     return allocNodeNumberer;
+  }
+
+  private final ArrayNumberer<CastNode> castNodeNumberer = new ArrayNumberer<CastNode>();
+
+  public ArrayNumberer<CastNode> getCastNodeNumberer() {
+    return castNodeNumberer;
   }
 
   private final ArrayNumberer<VarNode> varNodeNumberer = new ArrayNumberer<VarNode>();
@@ -1479,6 +1496,7 @@ public class PAG implements PointsToAnalysis {
   private final Map<Object, LocalVarNode> valToLocalVarNode = new HashMap<>(1000);
   private final Map<Object, GlobalVarNode> valToGlobalVarNode = new HashMap<>(1000);
   private final Map<Object, AllocNode> valToAllocNode = new HashMap<>(1000);
+  private final Map<Object, CastNode> valToCastNode = new HashMap<>(1000);
   private final Table<Object, Type, AllocNode> valToReflAllocNode = HashBasedTable.create();
   private OnFlyCallGraph ofcg;
   private final ArrayList<VarNode> dereferences = new ArrayList<VarNode>();
