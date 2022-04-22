@@ -35,6 +35,7 @@ import soot.jimple.NewArrayExpr;
 import soot.jimple.spark.pag.AllocDotField;
 import soot.jimple.spark.pag.AllocNode;
 import soot.jimple.spark.pag.ArrayElement;
+import soot.jimple.spark.pag.CastNode;
 import soot.jimple.spark.pag.MethodPAG;
 import soot.jimple.spark.pag.Node;
 import soot.jimple.spark.pag.PAG;
@@ -102,7 +103,7 @@ public class OnFlyCallGraph {
   }
 
   public void build() {
-    ofcgb.processReachables();
+    ofcgb.processReachables(); // Hier kommt put() in die reachableMethods
     processReachables();
     processCallEdges();
   }
@@ -168,6 +169,9 @@ public class OnFlyCallGraph {
         public final void visit(Node n) {
           if (n instanceof AllocNode) {
             ofcgb.addType(receiver, context, n.getType(), (AllocNode) n);
+          }
+          if (n instanceof CastNode) {
+            ofcgb.addType(receiver, context, n.getType(), (CastNode) n);
           }
         }
       });

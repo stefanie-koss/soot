@@ -29,7 +29,7 @@ public class AnySubType extends RefLikeType {
 
   private RefType base;
 
-  private AnySubType(RefType base) {
+  public AnySubType(RefType base) {
     this.base = base;
   }
 

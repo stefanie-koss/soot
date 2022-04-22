@@ -803,6 +803,12 @@ public class OnFlyCallGraphBuilder {
           InstanceInvokeExpr iie = (InstanceInvokeExpr) ie;
           Local receiver = (Local) iie.getBase();
           MethodSubSignature subSig = new MethodSubSignature(iie.getMethodRef());
+
+          // conditional breakpoint
+          if (receiver.getName().equals("$1") && subSig.toString().equals("void put()")) {
+            int i = 0;
+          }
+
           addVirtualCallSite(s, m, receiver, iie, new MethodSubSignature(iie.getMethodRef()), Edge.ieToKind(iie));
 
           VirtualEdge virtualEdge = virtualEdgeSummaries.getVirtualEdgesMatchingSubSig(subSig);
@@ -843,6 +849,7 @@ public class OnFlyCallGraphBuilder {
         }
       }
     }
+
   }
 
   protected void processVirtualEdgeSummary(SootMethod m, final Stmt s, Local receiver, VirtualEdgeTarget target,

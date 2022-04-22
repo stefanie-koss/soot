@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import soot.AnySubType;
 import soot.FastHierarchy;
 import soot.PointsToAnalysis;
 import soot.RefType;
@@ -148,6 +149,12 @@ public class PropWorklist extends Propagator {
     boolean ret = false;
     boolean flush = true;
 
+    String srcString = src.toString();
+    // Bei LocalVarNode 9 kommt put() in die reachableMethods
+    if (src.toString().contains("17") || src.toString().contains("16") || src.toString().contains("9")) {
+      int i = 0;
+    }
+
     if (src.getReplacement() != src) {
       throw new RuntimeException("Got bad node " + src + " with rep " + src.getReplacement());
     }
@@ -160,7 +167,7 @@ public class PropWorklist extends Propagator {
     if (ofcg != null) {
       QueueReader<Node> addedEdges = pag.edgeReader();
       ofcg.updatedNode(src);
-      ofcg.build();
+      ofcg.build(); // Hier kommt put() in die reachableMethods
 
       while (addedEdges.hasNext()) {
         Node addedSrc = (Node) addedEdges.next();
@@ -255,7 +262,9 @@ public class PropWorklist extends Propagator {
         }
 
         // TODO delete everything from p2set, which is not a subtype of the declared type of the target
-        PointsToSetInternal prunedP2Set = pag.getSetFactory().newSet(declaredType, pag);
+        // PointsToSetInternal prunedP2Set = pag.getSetFactory().newSet(declaredType, pag);
+        // Overapproximation for debugging
+        PointsToSetInternal prunedP2Set = pag.getSetFactory().newSet(new AnySubType(new RefType("java.lang.Object")), pag);
 
         // TODO fill the entries from newP2Set to prunedP2Set, that are type compatible
         newP2Set.forall(new P2SetVisitor() {
@@ -282,9 +291,16 @@ public class PropWorklist extends Propagator {
           }
 
         });
+        // TODO propagate the prunedP2Set if it does exist.
+        // propagate p2set to target
+        if (element.makeP2Set().addAll(prunedP2Set, null)) {
+          varNodeWorkList.add((VarNode) element);
+          if (element == src) {
+            flush = false;
+          }
+          ret = true;
+        }
       }
-      // TODO propagate the prunedP2Set if it does exist.
-      // propagate p2set to target
 
       if (element.makeP2Set().addAll(newP2Set, null)) {
         varNodeWorkList.add((VarNode) element);

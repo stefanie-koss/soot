@@ -1,5 +1,6 @@
 package soot.jimple.spark.pag;
 
+import soot.AnySubType;
 import soot.Context;
 import soot.PhaseOptions;
 import soot.RefType;
@@ -23,7 +24,7 @@ import soot.options.CGOptions;
  * @author koss
  *
  */
-public class CastNode extends Node implements Context {
+public class CastNode extends AllocNode implements Context {
   /** Returns the new expression of this type cast site. */
   public Object getCastExpr() {
     return castExpr;
@@ -37,7 +38,7 @@ public class CastNode extends Node implements Context {
   /* End of public methods. */
 
   CastNode(PAG pag, Object castExpr, Type t, Node p2Node, SootMethod m) {
-    super(pag, t);
+    super(pag, t, t, m);
     this.p2Node = p2Node;
     this.method = m;
     if (t instanceof RefType) {
@@ -53,6 +54,10 @@ public class CastNode extends Node implements Context {
     if (castExpr instanceof ContextVarNode) {
       throw new RuntimeException();
     }
+
+    // overapproximation for debugging
+    this.type = new AnySubType(new RefType("java.lang.Object"));
+
     pag.getCastNodeNumberer().add(this);
   }
 
